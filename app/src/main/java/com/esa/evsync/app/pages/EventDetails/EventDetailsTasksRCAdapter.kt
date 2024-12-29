@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import com.esa.evsync.app.dataModels.TaskModel
 
-import com.esa.evsync.databinding.FragmentTaskCardBinding
+import com.esa.evsync.databinding.CardTaskListitemBinding
 
 /**
  * [RecyclerView.Adapter] that can display a [TaskModel]..
@@ -19,7 +19,7 @@ class EventDetailsTasksRCAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return ViewHolder(
-            FragmentTaskCardBinding.inflate(
+            CardTaskListitemBinding.inflate(
                 LayoutInflater.from(parent.context),
                 parent,
                 false
@@ -32,21 +32,16 @@ class EventDetailsTasksRCAdapter(
         val task = tasks[position]
         holder.idName.text = task.name?:"Unknown group"
         holder.idDesc.text = task.description?:"Unknown description"
-        val context = holder.idName.context
-//        if (item.image != null) {
-//            Glide.with(context)
-//                .load(item.image)
-//                .placeholder(R.drawable.baseline_cached_black_24dp)
-//                .error(R.drawable.baseline_sync_problem_black_24dp)
-//                .into(holder.idImage)
-//        } else {
-//            holder.idImage.setImageResource(R.drawable.baseline_event_black_24dp)
-//        }
     }
 
     override fun getItemCount(): Int = tasks.size
 
-    inner class ViewHolder(binding: FragmentTaskCardBinding) :
+    fun setData(newTasks: ArrayList<TaskModel>) {
+        tasks = newTasks
+        notifyDataSetChanged()  // Notify that the dataset has changed
+    }
+
+    inner class ViewHolder(binding: CardTaskListitemBinding) :
         RecyclerView.ViewHolder(binding.root) {
         val idName: TextView = binding.tvName
         val idDesc: TextView = binding.tvDescription
