@@ -65,7 +65,7 @@
 
     <fragment
         android:id="@+id/nav_eventAddFragment"
-        android:name="com.esa.evsync.app.pages.EventAddFragment"
+        android:name="com.esa.evsync.app.pages.EventList.EventAddFragment"
         android:label="Add Event"
         tools:layout="@layout/fragment_event_add"
         >
@@ -94,7 +94,7 @@
             app:destination="@id/nav_task_add" />
         <action
             android:id="@+id/action_nav_event_details_to_nav_member_add"
-            app:destination="@id/nav_member_add" />
+            app:destination="@id/nav_user_picker" />
     </fragment>
 
     <fragment
@@ -105,24 +105,26 @@
         <argument
             android:name="eventId"
             app:argType="string" />
-        <argument
-            android:name="eventName"
-            app:argType="string"/>
-        <argument
-            android:name="eventDescription"
-            app:argType="string" />
         <action
             android:id="@+id/action_nav_task_add_to_nav_event_details"
             app:destination="@id/nav_event_details" />
+        <action
+            android:id="@+id/action_nav_task_add_to_nav_user_picker"
+            app:destination="@id/nav_user_picker" />
     </fragment>
 
     <fragment
-        android:id="@+id/nav_member_add"
-        android:name="com.esa.evsync.app.pages.MemberSearch.MemberSearchFragment"
-        android:label="Add Member"
-        tools:layout="@layout/fragment_member_search">
+        android:id="@+id/nav_user_picker"
+        android:name="com.esa.evsync.app.pages.UserPicker.UserPickerFragment"
+        android:label="Evsync"
+        tools:layout="@layout/fragment_user_picker">
         <argument
-            android:name="eventId"
-            app:argType="string" />
+            android:name="userIDs"
+            app:argType="string[]" />
+        <argument
+            android:name="selected"
+            app:argType="string[]"
+            app:nullable="true"
+            android:defaultValue="@null" />
     </fragment>
 </navigation>

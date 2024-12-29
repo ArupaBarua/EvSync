@@ -1,16 +1,21 @@
 package com.esa.evsync.app.pages.EventDetails
 
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.esa.evsync.app.pages.EventList.EventDetailsMembersRCAdapter
 import com.esa.evsync.app.pages.EventList.EventListFragment
 import com.esa.evsync.databinding.FragmentEventDetailsMembersBinding
+import com.google.firebase.firestore.FieldPath
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 class EventDetailsMembersFragment(
     private val viewModel: EventDetailsViewModel) : Fragment() {
@@ -36,11 +41,24 @@ class EventDetailsMembersFragment(
         super.onViewCreated(view, savedInstanceState)
 
         binding.btnAddMember.setOnClickListener {
-            val navController = findNavController()
-            val action = EventDetailsFragmentDirections.actionNavEventDetailsToNavMemberAdd(
-                eventId = viewModel.eventId
-            )
-            navController.navigate(action)
+            if (viewModel.event.value == null || viewModel.event.value!!.members == null) return@setOnClickListener
+            try {
+                Firebase.firestore.collection("users")
+                    .whereNotIn(FieldPath.documentId(), viewModel.event.value!!.members!!)
+                    .get()
+                    .addOnSuccessListener { users ->
+                        val navController = findNavController()
+                        val userIDs = users.documents.map {it.id}
+                        val action = EventDetailsFragmentDirections.actionNavEventDetailsToNavMemberAdd(
+                            userIDs = userIDs.toTypedArray()
+                        )
+                        navController.navigate(action)
+                    }
+            } catch (e: Error) {
+                Log.e("datafetch", "Failed to get users data", e)
+                Toast.makeText(requireContext(), "Failed to get user info", Toast.LENGTH_SHORT).show()
+            }
+
         }
 
         binding.rcEventMembers.layoutManager = when {

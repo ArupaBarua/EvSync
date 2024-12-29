@@ -68,10 +68,16 @@ class EventDetailsFragment : Fragment() {
 
         viewModel.fetchEventInfo()
 
-        parentFragmentManager.setFragmentResultListener("request_search_member", viewLifecycleOwner) { requestKey, bundle ->
-            if (requestKey == "request_search_member") {
+        parentFragmentManager.setFragmentResultListener("request_user_picker", viewLifecycleOwner) { requestKey, bundle ->
+            if (requestKey == "request_user_picker") {
                 val selectedResults = bundle.getStringArrayList("selected_result")
                 viewModel.addMembers(selectedResults)
+            }
+        }
+        parentFragmentManager.setFragmentResultListener("request_task_add", viewLifecycleOwner) { requestKey, bundle ->
+            if (requestKey == "request_task_add") {
+                val taskInfo = bundle.getParcelable<TaskAddDataModel>("task_info")
+                viewModel.addTask(taskInfo)
             }
         }
     }

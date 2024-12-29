@@ -14,8 +14,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.esa.evsync.R
+import com.esa.evsync.app.dataModels.EventModel
 import com.esa.evsync.app.dataModels.TaskModel
 import com.esa.evsync.app.dataModels.TaskPriority
+import com.esa.evsync.app.pages.EventDetails.TaskAddDataModel
 import com.esa.evsync.databinding.FragmentTaskAddBinding
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.FieldValue
@@ -35,7 +37,7 @@ class TaskAddFragment : Fragment() {
     private lateinit var binding: FragmentTaskAddBinding
     private val db = Firebase.firestore
     private lateinit var eventId: String
-    private val taskCollection = db.collection("tasks")
+    private var assigned = ArrayList<String>()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -74,64 +76,59 @@ class TaskAddFragment : Fragment() {
             )
             datePickerDialog.show()
         }
-        binding.btnCreate.setOnClickListener(::addTask)
-    }
+        binding.btnCreate.setOnClickListener{ addTask() }
 
-    private fun convertToDate(dateString: String): Date? {
-        val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        return try {
-            format.parse(dateString)
-        } catch (e: Exception) {
-            e.printStackTrace()  // Handle exception if the string format is invalid
-            null
+        binding.btnAssign.setOnClickListener {
+            try {
+                db.collection("events").document(args.eventId)
+                    .get()
+                    .addOnSuccessListener { eventSnapshot ->
+                        val navController = findNavController()
+                        val event = eventSnapshot.toObject(EventModel::class.java)!!
+                        val userIDs = event.members!!.map {it.id}
+                        val action = TaskAddFragmentDirections.actionNavTaskAddToNavUserPicker(
+                            userIDs = userIDs.toTypedArray()
+                        )
+                        navController.navigate(action)
+                    }
+            } catch (e: Error) {
+                Log.e("datafetch", "Failed to get users data", e)
+                Toast.makeText(requireContext(), "Failed to get user info", Toast.LENGTH_SHORT).show()
+            }
+
+        }
+
+
+        parentFragmentManager.setFragmentResultListener("request_user_picker", viewLifecycleOwner) { requestKey, bundle ->
+            if (requestKey == "request_user_picker") {
+                val updatedAssigned = bundle.getStringArrayList("selected_result")
+                if (updatedAssigned != null) {
+                    assigned = updatedAssigned
+                    binding.tvAssignCnt.text = " (${assigned.size})"
+                }
+            }
         }
     }
 
-    private fun addTask(view: View?) {
-        val eventRef = db.collection("events").document(eventId)
-
-        val task = TaskModel(
+    private fun addTask() {
+        val task = TaskAddDataModel(
             name = binding.etName.text.toString(),
             description = binding.etDesc.text.toString(),
-            priority = TaskPriority.valueOf((binding.dropdownPriority.selectedItem as String).uppercase()),
-            deadline = convertToDate(binding.tvDate.text.toString()),
-            eventRef = eventRef,
-            assigned = ArrayList(),
-            complete = false
+            priority = binding.dropdownPriority.selectedItem as String,
+            deadline = binding.tvDate.text.toString(),
+            assigned = assigned,
         )
 
-        if (task.name == "" || task.description == "" || task.priority == TaskPriority.UNSET
-            || task.deadline == null) {
+        if (task.name == "" || task.description == "" || task.deadline == ""
+            || task.priority.uppercase() == TaskPriority.UNSET.toString().uppercase()) {
             Log.w("Firebase", "Not enough information provided")
             Toast.makeText(requireContext(), "Not enough information provided", Toast.LENGTH_SHORT).show()
             return
         }
 
-        if (eventId == "") {
-            Log.e("Firebase", "Event doesn't exist failed to create task")
-            Toast.makeText(requireContext(), "Event doesn't exist failed to create task", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        lifecycleScope.launch {
-            try {
-                withContext(Dispatchers.IO) {
-                   val taskRef = taskCollection.add(task).await()!!
-                   eventRef.update("tasks", FieldValue.arrayUnion(taskRef)).await()
-                }
-                Toast.makeText(requireContext(), "Task created", Toast.LENGTH_SHORT).show()
-                val navController = findNavController()
-                val action = TaskAddFragmentDirections.actionNavTaskAddToNavEventDetails(
-                    eventId = eventId,
-                    eventName = args.eventName,
-                    eventDescription = args.eventDescription
-                )
-                navController.navigate(action)
-            } catch (e: Error) {
-                Log.e("Firebase", "Failed to create event", e)
-                Toast.makeText(requireContext(), "Failed to register event", Toast.LENGTH_SHORT).show()
-            }
-        }
-
+        val bundle = Bundle()
+        bundle.putParcelable("task_info", task)
+        parentFragmentManager.setFragmentResult("request_task_add", bundle)
+        findNavController().popBackStack()
     }
 }
